@@ -1,63 +1,48 @@
 <?php
 // File: pages/get_wilayah.php
-header("Content-Type: text/html");
+include '../config/database.php'; 
 
-// PERBAIKAN JALUR INCLUDE PALING STABIL
-require_once __DIR__ . '/../config/koneksi_wilayah.php'; 
+$id = isset($_GET['id']) ? $_GET['id'] : '';
+$level = isset($_GET['level']) ? $_GET['level'] : 0;
+$query_result = array();
 
-if (isset($_GET['id']) && !empty($_GET['id'])) {
-    
-    $id = $_GET['id'];
-    $n = strlen($id);
-    
-    $placeholder = '';
-    $m = 0; 
-
-    // Tentukan level dan panjang kode anak
-    if ($n == 2) {
-        $m = 5; $placeholder = 'Kota/Kabupaten';
-    } elseif ($n == 5) {
-        $m = 8; $placeholder = 'Kecamatan';
-    } elseif ($n == 8) {
-        $m = 13; $placeholder = 'Kelurahan/Desa';
+// Logika pengambilan data dari tabel 'wilayah' menggunakan kode
+if ($id) {
+    if ($level == 1) { // Ambil Kabupaten/Kota, kode length = 5
+        $query = "SELECT kode, nama FROM wilayah WHERE LEFT(kode, 2) = ? AND LENGTH(kode) = 5 ORDER BY nama";
+    } elseif ($level == 2) { // Ambil Kecamatan, kode length = 8
+        $query = "SELECT kode, nama FROM wilayah WHERE LEFT(kode, 5) = ? AND LENGTH(kode) = 8 ORDER BY nama";
+    } elseif ($level == 3) { // Ambil Kelurahan/Desa, kode length = 13
+        $query = "SELECT kode, nama FROM wilayah WHERE LEFT(kode, 8) = ? AND LENGTH(kode) = 13 ORDER BY nama";
     } else {
-        echo "<option value=''>ID Induk tidak valid</option>";
+        echo json_encode([]);
         exit;
     }
 
-    try {
-        // Logika SQL: Menggunakan LIKE untuk memfilter kode berdasarkan pola "kode_induk.%"
-        $query_sql = "SELECT kode, nama FROM wilayah WHERE kode LIKE :like_pattern AND CHAR_LENGTH(kode) = :m ORDER BY nama";
-        $query = $db_wilayah->prepare($query_sql);
-        
-        // Pola LIKE: Tambahkan pola LIKE: ex: '11.%', '11.01.%'
-        $like_pattern = $id . '.%';
-        
-        // Binding parameter
-        $query->execute([':like_pattern' => $like_pattern, ':m' => $m]);
-        
-        echo "<option value=''>Pilih {$placeholder}</option>";
-        if ($query->rowCount() == 0) {
-            echo "<option value=''>Data {$placeholder} tidak ditemukan</option>";
-        } else {
-            while ($d = $query->fetch(PDO::FETCH_OBJ)) {
-                echo "<option value='{$d->kode}'>{$d->nama}</option>";
-            }
+    $stmt = $conn->prepare($query);
+    if ($stmt) {
+        $stmt->bind_param("s", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $query_result[] = $row;
         }
-    } catch (PDOException $e) {
-        echo "<option value=''>Error Database: " . htmlspecialchars($e->getMessage()) . "</option>";
+        $stmt->close();
     }
 } else {
-    // Mengambil daftar Provinsi (Awal)
-    try {
-        $query_prov = $db_wilayah->prepare("SELECT kode, nama FROM wilayah WHERE CHAR_LENGTH(kode)=2 ORDER BY nama");
-        $query_prov->execute();
-        echo "<option value=''>Pilih Provinsi</option>";
-        while ($data_prov = $query_prov->fetch(PDO::FETCH_OBJ)) {
-            echo '<option value="' . $data_prov->kode . '">' . $data_prov->nama . '</option>';
+    // Ambil Provinsi (level 0), kode length = 2
+    $query = "SELECT kode, nama FROM wilayah WHERE LENGTH(kode) = 2 ORDER BY nama";
+    $result = $conn->query($query);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $query_result[] = $row;
         }
-    } catch (PDOException $e) {
-        echo "<option value=''>Error Database (Provinsi): " . htmlspecialchars($e->getMessage()) . "</option>";
     }
 }
+
+// Mengembalikan hasil dalam format JSON
+header('Content-Type: application/json');
+echo json_encode($query_result);
+
+$conn->close();
 ?>

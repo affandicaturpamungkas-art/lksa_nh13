@@ -4,7 +4,7 @@ include '../config/database.php';
 
 // Fungsi untuk mengunggah file foto (MENGGUNAKAN LOGIKA NAMA BARU)
 function handle_upload($file, $nama_toko) {
-    // --- PERBAIKAN: Mengganti hardcode path dengan path relatif yang dinamis ---
+    // ... (Fungsi handle_upload tidak berubah) ...
     $target_dir = __DIR__ . '/../assets/img/';
     
     $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
@@ -40,25 +40,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Mengambil data dari form
     $id_lksa = $_POST['id_lksa'] ?? '';
     $nama_toko = $_POST['nama_toko'] ?? '';
-    $alamat_toko = $_POST['alamat_toko'] ?? ''; 
+    
+    // MENGGUNAKAN FIELD ALAMAT GABUNGAN
+    $alamat_toko = $_POST['alamat_toko'] ?? ''; // <--- Ambil alamat lengkap dari hidden field
+
+    // Mengambil data wilayah yang dikirim dari hidden field (Nama Wilayah)
     $nama_pemilik = $_POST['nama_pemilik'] ?? '';
     $wa_pemilik = $_POST['wa_pemilik'] ?? '';
     $email_pemilik = $_POST['email_pemilik'] ?? '';
-    
-    // Data Tanggal Pengambilan (YYYY-MM-DD)
     $jadwal_pengambilan = $_POST['jadwal_pengambilan'] ?? ''; 
-    
     $keterangan = $_POST['keterangan'] ?? '';
     $latitude = $_POST['latitude'] ?? null;
     $longitude = $_POST['longitude'] ?? null;
     $foto_path = null;
     
-    // START: MENGAMBIL NAMA WILAYAH DARI HIDDEN FIELD
-    $provinsi_name = $_POST['provinsi_name'] ?? null;
-    $kabupaten_name = $_POST['kabupaten_name'] ?? null;
-    $kecamatan_name = $_POST['kecamatan_name'] ?? null;
-    $kelurahan_name = $_POST['kelurahan_name'] ?? null;
-    // END: MENGAMBIL NAMA WILAYAH
+    // VARIABEL WILAYAH BARU (DIAMBIL DARI FIELD HIDDEN)
+    $provinsi_name = $_POST['ID_Provinsi'] ?? ''; 
+    $kabupaten_name = $_POST['ID_Kabupaten'] ?? ''; 
+    $kecamatan_name = $_POST['ID_Kecamatan'] ?? ''; 
+    $kelurahan_name = $_POST['ID_Kelurahan'] ?? ''; 
     
     // Menangani unggahan foto
     if (!empty($_FILES['foto']['name'])) {
@@ -91,15 +91,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $id_lksa, 
         $nama_toko, 
         $alamat_toko, 
-        // BINDING NAMA WILAYAH (string)
-        $provinsi_name, 
-        $kabupaten_name, 
-        $kecamatan_name, 
-        $kelurahan_name, 
+        $provinsi_name, // <-- Nilai dari API Wilayah
+        $kabupaten_name, // <-- Nilai dari API Wilayah
+        $kecamatan_name, // <-- Nilai dari API Wilayah
+        $kelurahan_name, // <-- Nilai dari API Wilayah
         $nama_pemilik, 
         $wa_pemilik, 
         $email_pemilik, 
-        $jadwal_pengambilan, // Tipe data DATE/DATETIME di MySQL di-handle dengan 's'
+        $jadwal_pengambilan, 
         $keterangan, 
         $foto_path, 
         $latitude, 
